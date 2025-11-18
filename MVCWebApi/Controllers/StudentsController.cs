@@ -4,6 +4,7 @@ using System.Data;
 using System.Data.Entity;
 using System.Linq;
 using System.Net;
+using System.Net.Http;
 using System.Web;
 using System.Web.Mvc;
 using MVCWebApi;
@@ -17,7 +18,25 @@ namespace MVCWebApi.Controllers
         // GET: Students
         public ActionResult Index()
         {
-            return View(db.students.ToList());
+            IEnumerable<student> students = null;
+            using (var client=new HttpClient())
+            {
+                client.BaseAddress = new Uri("http://localhost:59733/api/API/");
+                var responseTask = client.GetAsync("getstudents");
+                responseTask.Wait();
+                var result = responseTask.Result;
+                if (result.IsSuccessStatusCode)
+                {
+                    var readTask = result.Content.ReadAsAsync<IList<student>>();
+                    readTask.Wait();
+                    students = readTask.Result;
+                }
+                else
+                {
+                    students = Enumerable.Empty<student>();
+                }
+            }
+            return View(students);
         }
 
         // GET: Students/Details/5
@@ -27,12 +46,26 @@ namespace MVCWebApi.Controllers
             {
                 return new HttpStatusCodeResult(HttpStatusCode.BadRequest);
             }
-            student student = db.students.Find(id);
-            if (student == null)
+            student student = null;
+            using (var client = new HttpClient())
             {
-                return HttpNotFound();
+                client.BaseAddress = new Uri("http://localhost:59733/api/API/");
+                var responseTask = client.GetAsync($"getstudent/{id}");
+                responseTask.Wait();
+                var result = responseTask.Result;
+                if (result.IsSuccessStatusCode)
+                {
+                    var readTask = result.Content.ReadAsAsync<student>();
+                    readTask.Wait();
+                    student = readTask.Result;
+                }
+                else
+                {
+                    student = new student();
+                }
             }
             return View(student);
+
         }
 
         // GET: Students/Create
@@ -46,16 +79,28 @@ namespace MVCWebApi.Controllers
         // more details see https://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public ActionResult Create([Bind(Include = "id,Name,Age,Mark")] student student)
+        public ActionResult Create([Bind(Include = "id,Name,Age,Mark")] student stu)
         {
             if (ModelState.IsValid)
             {
-                db.students.Add(student);
-                db.SaveChanges();
-                return RedirectToAction("Index");
+                using (var client = new HttpClient())
+                {
+                    client.BaseAddress = new Uri("http://localhost:59733/api/API/");
+                    var responseTask = client.PostAsJsonAsync("addstudent",stu);
+                    responseTask.Wait();
+                    var result = responseTask.Result;
+                    if (result.IsSuccessStatusCode)
+                    {
+                        return RedirectToAction("Index");
+                    }
+                    else
+                    {
+                        return View(stu);
+                    }
+                }
+                    
             }
-
-            return View(student);
+            return View(stu);
         }
 
         // GET: Students/Edit/5
@@ -78,15 +123,28 @@ namespace MVCWebApi.Controllers
         // more details see https://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public ActionResult Edit([Bind(Include = "id,Name,Age,Mark")] student student)
+        public ActionResult Edit([Bind(Include = "id,Name,Age,Mark")] student stu)
         {
             if (ModelState.IsValid)
             {
-                db.Entry(student).State = EntityState.Modified;
-                db.SaveChanges();
-                return RedirectToAction("Index");
+                using (var client = new HttpClient())
+                {
+                    client.BaseAddress = new Uri("http://localhost:59733/api/API/");
+                    var responseTask = client.PostAsJsonAsync("editstudent", stu);
+                    responseTask.Wait();
+                    var result = responseTask.Result;
+                    if (result.IsSuccessStatusCode)
+                    {
+                        return RedirectToAction("Index");
+                    }
+                    else
+                    {
+                        return View(stu);
+                    }
+                }
+                    
             }
-            return View(student);
+            return View(stu);
         }
 
         // GET: Students/Delete/5
@@ -109,10 +167,21 @@ namespace MVCWebApi.Controllers
         [ValidateAntiForgeryToken]
         public ActionResult DeleteConfirmed(int id)
         {
-            student student = db.students.Find(id);
-            db.students.Remove(student);
-            db.SaveChanges();
-            return RedirectToAction("Index");
+            using (var client = new HttpClient())
+            {
+                client.BaseAddress = new Uri("http://localhost:59733/api/API/");
+                var responseTask = client.DeleteAsync($"deletestudent/{id}");
+                responseTask.Wait();
+                var result = responseTask.Result;
+                if (result.IsSuccessStatusCode)
+                {
+                    return RedirectToAction("Index");
+                }
+                else
+                {
+                    return View();
+                }
+            }
         }
 
         protected override void Dispose(bool disposing)

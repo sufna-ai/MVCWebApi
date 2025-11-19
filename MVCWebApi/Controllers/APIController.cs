@@ -65,7 +65,7 @@ namespace MVCWebApi.Controllers
         }
 
         // EDIT: api/API
-        [HttpPost]
+        [HttpPut]
         [Route("api/API/editstudent")]
         public IHttpActionResult Edit(student stu)
         {

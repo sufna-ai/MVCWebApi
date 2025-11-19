@@ -130,7 +130,7 @@ namespace MVCWebApi.Controllers
                 using (var client = new HttpClient())
                 {
                     client.BaseAddress = new Uri("http://localhost:59733/api/API/");
-                    var responseTask = client.PostAsJsonAsync("editstudent", stu);
+                    var responseTask = client.PutAsJsonAsync("editstudent", stu);
                     responseTask.Wait();
                     var result = responseTask.Result;
                     if (result.IsSuccessStatusCode)
